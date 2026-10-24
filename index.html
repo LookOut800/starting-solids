@@ -425,7 +425,7 @@ setTimeout(() => { const m = document.getElementById("gateMsg"); if (m && m.text
 <script type="module">
 import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initializeFirestore, persistentLocalCache, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 // ---------- Food data ----------
 const NUT = {
@@ -919,9 +919,23 @@ $("signInBtn").addEventListener("click", async () => {
   try { await signInWithPopup(auth, provider); }
   catch (e) {
     if (e?.code === "auth/popup-blocked" || e?.code === "auth/operation-not-supported-in-this-environment") return signInWithRedirect(auth, provider);
-    if (e?.code !== "auth/popup-closed-by-user" && e?.code !== "auth/cancelled-popup-request") gate("Sign-in didn’t work. Try again.", { signIn: true });
+    signInError(e);
   }
 });
+// Show the real reason sign-in failed, with a plain hint for the common ones
+function signInError(e) {
+  const code = e?.code || "unknown";
+  const hints = {
+    "auth/unauthorized-domain": "This web address isn’t on Firebase’s list of authorized domains.",
+    "auth/operation-not-allowed": "Google sign-in isn’t turned on in Firebase yet.",
+    "auth/popup-closed-by-user": "The Google window closed before sign-in finished. If you didn’t close it, try opening this page in Safari or Chrome directly rather than from the home-screen icon.",
+    "auth/network-request-failed": "No connection to Google. Check your internet and try again.",
+    "auth/internal-error": "Google sign-in hit an internal error. Try again in Safari or Chrome."
+  };
+  gate(`Sign-in didn’t work. ${hints[code] || ""} (${code})`, { signIn: true });
+  console.error(e);
+}
+getRedirectResult(auth).catch(signInError);
 const doSignOut = () => { unsubs.forEach(u => u()); unsubs = []; signOut(auth); };
 $("signOutBtn").addEventListener("click", doSignOut);
 $("gateSignOut").addEventListener("click", doSignOut);
