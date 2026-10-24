@@ -124,6 +124,14 @@ details.fold > .fold-body { display: flex; flex-direction: column; gap: 12px; ma
 .chip.flag { border-color: var(--rose); background: var(--rose-soft); }
 .chip .al { font-size: .65rem; font-weight: 800; letter-spacing: .05em; color: var(--butter); }
 .face { width: 16px; height: 16px; flex: none; }
+.dc { display: inline-flex; gap: 3px; align-items: center; }
+.dc i { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid var(--mint); display: block; }
+.dc i.on { background: var(--mint); }
+.dc.ok { width: 18px; height: 18px; border-radius: 50%; background: var(--mint); color: var(--on-accent); font-size: .7rem; font-weight: 800; justify-content: center; }
+.tag.dcok { background: var(--mint); color: var(--on-accent); }
+.dcline { font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.dcline.ok { color: var(--mint); }
+.dcline.flag { color: var(--rose); }
 
 .filter { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
 .filter button { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: .88rem; font-weight: 700; white-space: nowrap; }
@@ -280,7 +288,7 @@ textarea { min-height: 72px; resize: vertical; }
     <div class="stats">
       <div class="stat"><b class="num" id="sTried">0<small>/100</small></b><span>foods tried</span></div>
       <div class="stat"><b class="num" id="sAll">0<small>/9</small></b><span>allergens in</span></div>
-      <div class="stat"><b class="num" id="sNut">0<small>/16</small></b><span>nutrients</span></div>
+      <div class="stat"><b class="num" id="sDay">0</b><span>daycare OK</span></div>
     </div>
     <div id="status" hidden></div>
   </header>
@@ -290,6 +298,7 @@ textarea { min-height: 72px; resize: vertical; }
       <button aria-pressed="true" data-f="all">All foods</button>
       <button aria-pressed="false" data-f="tried">Tried</button>
       <button aria-pressed="false" data-f="todo">Not yet</button>
+      <button aria-pressed="false" data-f="daycare">Daycare OK</button>
     </div>
     <details class="card fold" data-sec="nutrients" data-closed>
       <summary class="section-head"><h2>Nutrients so far</h2><span class="count num" id="nutCount"></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
@@ -598,7 +607,7 @@ function face(r) {
 document.getElementById("fReaction").innerHTML = Object.entries(REACT).map(([k, v]) => `<button type="button" data-v="${k}">${face(k)}${v.label}</button>`).join("");
 
 // ---------- State ----------
-const state = { entries: [], settings: { name: "Alexander", birthDate: "" }, filter: "all", db: null, userId: null, userName: "", canWrite: true, editing: null, foodOpen: null, };
+const state = { daycare: new Map(), entries: [], settings: { name: "Alexander", birthDate: "" }, filter: "all", db: null, userId: null, userName: "", canWrite: true, editing: null, foodOpen: null, };
 const $ = id => document.getElementById(id);
 const keyOf = s => s.trim().toLowerCase().replace(/\s+/g, " ");
 const info = k => FOODS[k] || { name: k.replace(/\b\w/g, c => c.toUpperCase()), emoji: "🍽️", nut: [], stage: 1, allergen: ALLERGENS.find(a => a.toLowerCase() === k) || null };
@@ -645,8 +654,21 @@ document.addEventListener("toggle", ev => {
 }, true);
 
 // ---------- Render ----------
+// Daycare rule: cleared after he's eaten some (not refused) on 3 different days with no reaction
+const DAYCARE_TRIES = 3;
+function daycareStatus(list) {
+  const flagged = list.some(hasSigns);
+  const days = new Set(); let clearId = null;
+  for (const e of list) {
+    if (e.reaction === "refused" || hasSigns(e) || days.has(e.date)) continue;
+    days.add(e.date);
+    if (days.size === DAYCARE_TRIES) clearId = e.id;
+  }
+  return { tries: Math.min(days.size, DAYCARE_TRIES), cleared: !flagged && days.size >= DAYCARE_TRIES, flagged, clearId: flagged ? null : clearId };
+}
 function render() {
   const foods = byFood();
+  state.daycare = new Map([...foods].map(([k, l]) => [k, daycareStatus(l)]));
   $("title").textContent = `${babyName()}’s first foods`;
   const nowAge = ageOn(today());
   $("subtitle").textContent = nowAge ? `${nowAge} old · ${STAGES[currentStage() - 1].title.toLowerCase()}` : "Starting solids";
@@ -658,7 +680,7 @@ function render() {
   const nutSrc = {};
   for (const k of foods.keys()) for (const n of info(k).nut) (nutSrc[n] ||= []).push(nameOf(k));
   const nutN = Object.keys(NUT).filter(n => nutSrc[n]).length;
-  $("sNut").innerHTML = `${nutN}<small>/${Object.keys(NUT).length}</small>`;
+  $("sDay").textContent = [...foods.keys()].filter(k => state.daycare.get(k)?.cleared).length;
   $("nutCount").textContent = `${nutN} of ${Object.keys(NUT).length}`;
   $("nutrients").innerHTML = Object.entries(NUT).map(([k, label]) => {
     const on = !!nutSrc[k];
@@ -666,8 +688,8 @@ function render() {
   }).join("");
   $("alCount").textContent = `${alIn.size} of 9 introduced`;
 
-  const show = tried => state.filter === "all" || (state.filter === "tried" ? tried : !tried);
-  $("allergens").innerHTML = ALLERGENS.filter(a => show(alIn.has(a))).map(a => {
+  const show = (tried, cleared) => state.filter === "all" || (state.filter === "tried" ? tried : state.filter === "daycare" ? cleared : !tried);
+  $("allergens").innerHTML = ALLERGENS.filter(a => show(alIn.has(a), [...foods.keys()].some(k => info(k).allergen === a && state.daycare.get(k)?.cleared))).map(a => {
     const list = (alIn.get(a) || []).sort((x, y) => x.date.localeCompare(y.date));
     const flag = list.some(hasSigns);
     const last = list[list.length - 1];
@@ -680,7 +702,7 @@ function render() {
   const cats = { ...CATALOG }; if (custom.length) cats["Other foods"] = custom;
   $("cats").innerHTML = Object.entries(cats).map(([cat, list]) => {
     const tried = list.filter(k => foods.has(k)).length;
-    const chips = list.filter(k => show(foods.has(k))).map(k => chipHtml(k, foods)).join("");
+    const chips = list.filter(k => show(foods.has(k), state.daycare.get(k)?.cleared)).map(k => chipHtml(k, foods)).join("");
     if (!chips) return "";
     return `<details class="card fold" data-sec="cat:${esc(cat)}"${isOpen("cat:" + cat) ? " open" : ""}><summary class="section-head"><h2>${esc(cat)}</h2><span class="count num">${tried} / ${list.length}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="fold-body"><div class="chips">${chips}</div></div></details>`;
   }).join("");
@@ -694,7 +716,12 @@ function chipHtml(k, foods) {
   const f = info(k), l = foods.get(k);
   if (!l) return `<button class="chip" data-food="${esc(k)}"><span class="em">${f.emoji}</span>${esc(f.name)}${f.allergen ? ` <span class="al">ALLERGEN</span>` : ""}</button>`;
   const last = l[l.length - 1];
-  return `<button class="chip tried ${l.some(hasSigns) ? "flag" : ""}" data-food="${esc(k)}"><span class="em">${f.emoji}</span>${esc(f.name)}${face(last.reaction)}${l.length > 1 ? `<span class="n num">×${l.length}</span>` : ""}</button>`;
+  return `<button class="chip tried ${l.some(hasSigns) ? "flag" : ""}" data-food="${esc(k)}"><span class="em">${f.emoji}</span>${esc(f.name)}${face(last.reaction)}${dcMark(state.daycare.get(k))}</button>`;
+}
+function dcMark(d) {
+  if (!d || d.flagged) return "";
+  if (d.cleared) return `<span class="dc ok" title="Cleared for daycare">✓</span>`;
+  return `<span class="dc" title="${d.tries} of ${DAYCARE_TRIES} daycare tries">${"<i class=on></i>".repeat(d.tries)}${"<i></i>".repeat(DAYCARE_TRIES - d.tries)}</span>`;
 }
 
 function renderTimeline(foods) {
@@ -721,7 +748,7 @@ function entryHtml(e, isFirst) {
   const who = e.byName ? `logged by ${e.byName}` : "";
   const signs = (e.signs || []).filter(s => s !== "none");
   return `<button class="entry" data-entry="${esc(e.id)}"><span class="big">${f.emoji}</span><span class="body">
-    <span class="line1"><span class="food">${esc(f.name)}</span><span class="tags">${isFirst ? `<span class="tag first">FIRST TIME</span>` : ""}${f.allergen ? `<span class="tag al">${esc(f.allergen.toUpperCase())}</span>` : ""}</span></span>
+    <span class="line1"><span class="food">${esc(f.name)}</span><span class="tags">${isFirst ? `<span class="tag first">FIRST TIME</span>` : ""}${state.daycare.get(e.foodKey)?.clearId === e.id ? `<span class="tag dcok">DAYCARE OK</span>` : ""}${f.allergen ? `<span class="tag al">${esc(f.allergen.toUpperCase())}</span>` : ""}</span></span>
     <span class="meta">${e.reaction ? face(e.reaction) + esc(REACT[e.reaction].label) : "No reaction noted"}${bits.length ? " · " + esc(bits.join(" · ")) : ""}${who ? " · " + esc(who) : ""}</span>
     ${signs.length ? `<span class="tags">${signs.map(s => `<span class="tag sign">${esc(SIGNS[s] || s)}</span>`).join("")}</span>` : ""}
     ${e.notes ? `<span class="notes">${esc(e.notes)}</span>` : ""}
@@ -843,7 +870,10 @@ $("logForm").addEventListener("submit", async ev => {
     } else {
       const isNew = !state.entries.some(e => e.foodKey === body.foodKey);
       await state.db.collection("tastings").add({ ...body, createdAt: new Date().toISOString(), by: state.userId || null, byName: state.userName || "" });
-      toast(isNew ? `${info(body.foodKey).emoji} First taste of ${nameOf(body.foodKey).toLowerCase()}!` : "Saved");
+      const before = daycareStatus(state.entries.filter(e => e.foodKey === body.foodKey));
+      const after = daycareStatus([...state.entries.filter(e => e.foodKey === body.foodKey), { ...body, id: "new" }].sort((a, b) => a.date.localeCompare(b.date)));
+      toast(isNew ? `${info(body.foodKey).emoji} First taste of ${nameOf(body.foodKey).toLowerCase()}!`
+        : after.cleared && !before.cleared ? `${info(body.foodKey).emoji} ${nameOf(body.foodKey)} is cleared for daycare!` : "Saved");
     }
     $("logDlg").close();
   } catch (e) { showErr("logErr", dbMessage(e)); }
@@ -872,6 +902,10 @@ function openFood(k, refresh) {
   else {
     const counts = {}; list.forEach(e => { if (e.reaction) counts[e.reaction] = (counts[e.reaction] || 0) + 1; });
     const sum = Object.entries(counts).map(([r, n]) => `${REACT[r].label} ${n}×`).join(" · ");
+    const d = state.daycare.get(k) || daycareStatus(list);
+    html += d.flagged ? `<p class="dcline flag">Not cleared for daycare: a reaction was noted. Check with your pediatrician.</p>`
+      : d.cleared ? `<p class="dcline ok">✓ Cleared for daycare</p>`
+      : `<p class="dcline">Daycare: ${d.tries} of ${DAYCARE_TRIES} tries ${dcMark(d)}</p>`;
     html += `<p class="hint num">Tried ${list.length} ${list.length === 1 ? "time" : "times"}, first on ${parseDay(list[0].date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}${sum ? ". " + esc(sum) : ""}</p>`;
     html += [...list].reverse().map(e => entryHtml(e, e === list[0])).join("");
   }
