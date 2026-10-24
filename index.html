@@ -103,6 +103,13 @@ header.top { padding-top: 22px; display: flex; flex-direction: column; gap: 16px
 
 .card { background: var(--surface); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+details.fold { display: block; }
+details.fold > summary { list-style: none; cursor: pointer; align-items: center; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary h2 { flex: 1; min-width: 0; }
+details.fold > summary .chev { width: 22px; height: 22px; flex: none; color: var(--muted); transition: transform .2s; }
+details.fold:not([open]) > summary .chev { transform: rotate(-90deg); }
+details.fold > .fold-body { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .count { color: var(--muted); font-size: .85rem; font-weight: 700; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -284,16 +291,20 @@ textarea { min-height: 72px; resize: vertical; }
       <button aria-pressed="false" data-f="tried">Tried</button>
       <button aria-pressed="false" data-f="todo">Not yet</button>
     </div>
-    <section class="card">
-      <div class="section-head"><h2>Nutrients so far</h2><span class="count num" id="nutCount"></span></div>
+    <details class="card fold" data-sec="nutrients" data-closed>
+      <summary class="section-head"><h2>Nutrients so far</h2><span class="count num" id="nutCount"></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+      <div class="fold-body">
       <div class="nutrients" id="nutrients"></div>
       <p class="hint">Iron and zinc are the big ones now. The stores he was born with run low around 6 months, and milk alone doesn’t refill them.</p>
-    </section>
-    <section class="card" id="allergenSection">
-      <div class="section-head"><h2>Allergens</h2><span class="count num" id="alCount"></span></div>
+      </div>
+    </details>
+    <details class="card fold" data-sec="allergens" id="allergenSection" open>
+      <summary class="section-head"><h2>Allergens</h2><span class="count num" id="alCount"></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+      <div class="fold-body">
       <div class="allergens" id="allergens"></div>
       <p class="hint">Introduce these one at a time, in the morning, a few days apart. Once one is in, keep offering it a couple of times a week.</p>
-    </section>
+      </div>
+    </details>
     <div id="cats" class="stack"></div>
   </main>
 
@@ -302,17 +313,22 @@ textarea { min-height: 72px; resize: vertical; }
   </main>
 
   <main id="viewRoad" class="stack" hidden>
-    <section class="card">
-      <div class="section-head"><h2>Try next</h2><span class="count">picked from what he hasn’t had</span></div>
+    <details class="card fold" data-sec="next" open>
+      <summary class="section-head"><h2>Try next</h2><span class="count">picked from what he hasn’t had</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+      <div class="fold-body">
       <div class="next" id="nextList"></div>
-    </section>
-    <section class="card">
-      <h2>His roadmap</h2>
+      </div>
+    </details>
+    <details class="card fold" data-sec="road" open>
+      <summary class="section-head"><h2>His roadmap</h2><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+      <div class="fold-body">
       <p class="hint" id="roadHint"></p>
       <div class="road" id="road"></div>
-    </section>
-    <section class="card">
-      <h2>Wait until after his first birthday</h2>
+      </div>
+    </details>
+    <details class="card fold" data-sec="avoid" open>
+      <summary class="section-head"><h2>Wait until after his first birthday</h2><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+      <div class="fold-body">
       <div class="avoid">
         <div><span class="x">✕</span><span><strong>Honey</strong>, raw or baked in. It can carry botulism spores.</span></div>
         <div><span class="x">✕</span><span><strong>Cow’s milk as a drink.</strong> It’s fine in cooking, yogurt and cheese.</span></div>
@@ -326,7 +342,8 @@ textarea { min-height: 72px; resize: vertical; }
         <div><span class="x">!</span><span>Raw carrot, apple chunks, popcorn and hot dog rounds. Cook until soft, grate, or cut into long strips.</span></div>
       </div>
       <p class="src">Based on general guidance from the AAP (HealthyChildren.org), CDC and NIAID peanut guidelines. Every baby moves at their own pace, so check with your pediatrician.</p>
-    </section>
+      </div>
+    </details>
   </main>
 </div>
 
@@ -615,6 +632,18 @@ function byFood() {
 }
 const hasSigns = e => (e.signs || []).some(s => s !== "none");
 
+// ---------- Collapsible sections ----------
+// Each section remembers open/closed per device; sections marked data-closed start collapsed
+let folds = {};
+try { folds = JSON.parse(localStorage.getItem("solids.folds") || "{}"); } catch {}
+const isOpen = sec => folds[sec] ?? true;
+for (const d of document.querySelectorAll("details.fold[data-sec]")) d.open = folds[d.dataset.sec] ?? !d.hasAttribute("data-closed");
+document.addEventListener("toggle", ev => {
+  const d = ev.target; if (!d.matches?.("details.fold[data-sec]")) return;
+  folds[d.dataset.sec] = d.open;
+  try { localStorage.setItem("solids.folds", JSON.stringify(folds)); } catch {}
+}, true);
+
 // ---------- Render ----------
 function render() {
   const foods = byFood();
@@ -653,7 +682,7 @@ function render() {
     const tried = list.filter(k => foods.has(k)).length;
     const chips = list.filter(k => show(foods.has(k))).map(k => chipHtml(k, foods)).join("");
     if (!chips) return "";
-    return `<section class="card"><div class="section-head"><h2>${esc(cat)}</h2><span class="count num">${tried} / ${list.length}</span></div><div class="chips">${chips}</div></section>`;
+    return `<details class="card fold" data-sec="cat:${esc(cat)}"${isOpen("cat:" + cat) ? " open" : ""}><summary class="section-head"><h2>${esc(cat)}</h2><span class="count num">${tried} / ${list.length}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="fold-body"><div class="chips">${chips}</div></div></details>`;
   }).join("");
 
   renderTimeline(foods);
