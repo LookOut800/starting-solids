@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fff7f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d1820" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Solids">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Starting Solids</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: phone-first single column; sticky-free header with a little bowl, stat bubbles, three tabs (Foods / Diary / Roadmap) and a floating log button; sheets slide up */
+:root {
+  --bg: #fff7f2;
+  --surface: #ffffff;
+  --ink: #3a2f3d;
+  --muted: #8a7d8c;
+  --line: #f0e2dc;
+  --mint: #3f9b7a;
+  --mint-soft: #ddf3ea;
+  --peach: #f08a6c;
+  --peach-soft: #ffe6dc;
+  --butter: #c99412;
+  --butter-soft: #fff1c7;
+  --lilac: #8a6cc4;
+  --lilac-soft: #eee6fb;
+  --sky: #4a8fc4;
+  --sky-soft: #e1f0fb;
+  --rose: #d2496f;
+  --rose-soft: #fde2ea;
+  --on-accent: #ffffff;
+  --shadow: 0 8px 24px rgba(120, 70, 60, .12);
+  --font-display: "Fredoka", "Avenir Next Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1d1820; --surface: #282230; --ink: #f4ecf2; --muted: #b3a6b6; --line: #3a3142;
+    --mint: #7fd3b2; --mint-soft: #1f3a31; --peach: #ffa98f; --peach-soft: #43281f;
+    --butter: #f2c85a; --butter-soft: #3d3216; --lilac: #c2a9f2; --lilac-soft: #352a4a;
+    --sky: #93c6ee; --sky-soft: #1e3242; --rose: #f490ad; --rose-soft: #452030;
+    --on-accent: #1d1820; --shadow: 0 8px 24px rgba(0,0,0,.45); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1d1820; --surface: #282230; --ink: #f4ecf2; --muted: #b3a6b6; --line: #3a3142;
+  --mint: #7fd3b2; --mint-soft: #1f3a31; --peach: #ffa98f; --peach-soft: #43281f;
+  --butter: #f2c85a; --butter-soft: #3d3216; --lilac: #c2a9f2; --lilac-soft: #352a4a;
+  --sky: #93c6ee; --sky-soft: #1e3242; --rose: #f490ad; --rose-soft: #452030;
+  --on-accent: #1d1820; --shadow: 0 8px 24px rgba(0,0,0,.45); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+:root { padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+html, body { background: var(--bg); }
+body {
+  color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(110px + env(safe-area-inset-bottom, 0px));
+}
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; width: 100%; }
+.stack { display: flex; flex-direction: column; gap: 22px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+h1 { font-size: 1.85rem; font-weight: 700; line-height: 1.1; }
+h2 { font-size: 1.25rem; font-weight: 600; }
+p { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--lilac); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.hint { font-size: .88rem; color: var(--muted); }
+
+header.top { padding-top: 22px; display: flex; flex-direction: column; gap: 16px; }
+.hello { display: flex; align-items: center; gap: 14px; }
+.hello .bowl { width: 64px; height: 64px; flex: none; }
+.hello .txt { flex: 1; min-width: 0; }
+.hello .sub { color: var(--muted); font-weight: 700; margin-top: 2px; }
+.icon-btn { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; width: 42px; height: 42px; display: grid; place-items: center; flex: none; font-weight: 800; }
+.icon-btn svg { width: 20px; height: 20px; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat { border-radius: 22px; padding: 14px 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; min-width: 0; }
+.stat:nth-child(1) { background: var(--mint-soft); }
+.stat:nth-child(2) { background: var(--butter-soft); }
+.stat:nth-child(3) { background: var(--lilac-soft); }
+.stat b { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; line-height: 1; }
+.stat:nth-child(1) b { color: var(--mint); } .stat:nth-child(2) b { color: var(--butter); } .stat:nth-child(3) b { color: var(--lilac); }
+.stat b small { font-size: .85rem; color: var(--muted); }
+.stat span { font-size: .78rem; color: var(--muted); font-weight: 700; }
+
+.notice { background: var(--butter-soft); border-radius: 18px; padding: 12px 14px; font-size: .92rem; }
+.notice strong { color: var(--butter); }
+.notice.err { background: var(--rose-soft); } .notice.err strong { color: var(--rose); }
+
+.card { background: var(--surface); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
+.section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.count { color: var(--muted); font-size: .85rem; font-weight: 700; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 2px dashed var(--line); background: transparent; border-radius: 999px;
+  padding: 6px 12px 6px 8px; font-size: .92rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; color: var(--muted);
+}
+.chip .em { font-size: 1.1rem; line-height: 1; filter: grayscale(.85); opacity: .7; }
+.chip.tried { border-style: solid; border-color: transparent; background: var(--mint-soft); color: var(--ink); }
+.chip.tried .em { filter: none; opacity: 1; }
+.chip .n { font-size: .75rem; color: var(--mint); font-weight: 800; }
+.chip.flag { border-color: var(--rose); background: var(--rose-soft); }
+.chip .al { font-size: .65rem; font-weight: 800; letter-spacing: .05em; color: var(--butter); }
+.face { width: 16px; height: 16px; flex: none; }
+
+.filter { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.filter button { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: .88rem; font-weight: 700; white-space: nowrap; }
+.filter button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.nutrients { display: flex; flex-wrap: wrap; gap: 6px; }
+.nut { border-radius: 999px; padding: 5px 11px; font-size: .82rem; font-weight: 700; background: transparent; border: 2px dashed var(--line); color: var(--muted); }
+.nut.on { border: 2px solid transparent; background: var(--sky-soft); color: var(--sky); }
+.nut.key.on { background: var(--peach-soft); color: var(--peach); }
+.nut.key:not(.on) { border-color: var(--peach); color: var(--peach); }
+
+.allergens { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.al-card { background: var(--bg); border: 2px dashed var(--line); border-radius: 18px; padding: 10px 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; }
+.al-card .name { font-weight: 800; display: flex; gap: 6px; align-items: center; }
+.al-card .st { font-size: .8rem; color: var(--muted); font-weight: 600; }
+.al-card.done { border: 2px solid transparent; background: var(--butter-soft); }
+.al-card.done .st { color: var(--ink); }
+.al-card.flag { border-color: var(--rose); background: var(--rose-soft); }
+
+.day { display: flex; flex-direction: column; gap: 8px; }
+.day-label { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; }
+.day-label span { color: var(--muted); font-family: var(--font-body); font-size: .85rem; font-weight: 700; }
+.entry { background: var(--surface); border: 0; border-radius: 20px; padding: 12px 14px; text-align: left; width: 100%; display: flex; gap: 12px; align-items: flex-start; box-shadow: var(--shadow); }
+.entry .big { font-size: 1.9rem; line-height: 1; width: 44px; height: 44px; border-radius: 14px; background: var(--peach-soft); display: grid; place-items: center; flex: none; }
+.entry .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.entry .line1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.entry .food { font-weight: 800; font-size: 1.05rem; }
+.entry .meta { font-size: .84rem; color: var(--muted); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.entry .notes { font-size: .92rem; overflow-wrap: anywhere; }
+.tag { display: inline-block; font-size: .7rem; font-weight: 800; border-radius: 8px; padding: 2px 7px; letter-spacing: .03em; }
+.tag.first { background: var(--mint-soft); color: var(--mint); }
+.tag.al { background: var(--butter-soft); color: var(--butter); }
+.tag.sign { background: var(--rose-soft); color: var(--rose); }
+.tags { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.empty { border: 2px dashed var(--line); border-radius: 22px; padding: 26px 16px; text-align: center; color: var(--muted); display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.empty strong { color: var(--ink); font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
+
+/* Roadmap */
+.next { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.next button { border: 0; background: var(--bg); border-radius: 18px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 4px; }
+.next .em { font-size: 1.7rem; line-height: 1; }
+.next .nm { font-weight: 800; }
+.next .why { font-size: .8rem; color: var(--muted); font-weight: 600; }
+.road { display: flex; flex-direction: column; gap: 0; position: relative; }
+.stage { display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
+.stage .rail { display: flex; flex-direction: column; align-items: center; }
+.stage .pin { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; background: var(--line); color: var(--muted); flex: none; }
+.stage .rail::after { content: ""; flex: 1; width: 4px; border-radius: 4px; background: var(--line); margin: 4px 0; min-height: 16px; }
+.stage:last-child .rail::after { display: none; }
+.stage.done .pin { background: var(--mint); color: var(--on-accent); }
+.stage.now .pin { background: var(--peach); color: var(--on-accent); box-shadow: 0 0 0 6px var(--peach-soft); }
+.stage .content { padding-bottom: 22px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.stage .age { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.stage.now .age { color: var(--peach); }
+.stage ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: .93rem; }
+.stage .chips .chip { padding: 4px 10px 4px 6px; font-size: .85rem; }
+.avoid { display: flex; flex-direction: column; gap: 8px; }
+.avoid div { display: flex; gap: 10px; align-items: flex-start; font-size: .93rem; }
+.avoid .x { width: 22px; height: 22px; border-radius: 50%; background: var(--rose-soft); color: var(--rose); display: grid; place-items: center; font-weight: 800; font-size: .8rem; flex: none; margin-top: 1px; }
+.src { font-size: .8rem; color: var(--muted); }
+
+nav.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--surface); box-shadow: 0 -4px 20px rgba(120, 70, 60, .08);
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-block: 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  border-radius: 24px 24px 0 0;
+}
+nav.tabs .inner { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 4px; align-items: center; }
+nav.tabs .tab { border: 0; background: transparent; padding: 10px 4px; border-radius: 16px; font-weight: 800; color: var(--muted); font-size: .92rem; }
+nav.tabs .tab[aria-selected="true"] { color: var(--ink); background: var(--peach-soft); }
+.log-btn { border: 0; background: var(--peach); color: var(--on-accent); font-weight: 600; border-radius: 999px; padding: 12px 18px; font-family: var(--font-display); font-size: 1.02rem; box-shadow: var(--shadow); white-space: nowrap; }
+
+dialog {
+  border: 0; padding: 0; background: var(--surface); color: var(--ink);
+  width: min(640px, 100%); max-width: 100%; max-height: 92vh; margin: auto auto 0; border-radius: 28px 28px 0 0;
+  box-shadow: var(--shadow);
+}
+@media (min-width: 700px) { dialog { margin: auto; border-radius: 28px; } }
+dialog::backdrop { background: rgba(40, 25, 35, .45); }
+.sheet { display: flex; flex-direction: column; gap: 16px; padding: 20px max(18px, env(safe-area-inset-left, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)); }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sheet-head h2 { display: flex; align-items: center; gap: 8px; font-size: 1.4rem; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .field > .lbl { font-size: .9rem; font-weight: 800; }
+input[type="text"], input[type="date"], textarea {
+  font: inherit; color: var(--ink); background: var(--bg); border: 2px solid var(--line); border-radius: 16px; padding: 11px 13px; width: 100%;
+}
+input:focus, textarea:focus { border-color: var(--peach); outline: none; }
+textarea { min-height: 72px; resize: vertical; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg.three { grid-template-columns: repeat(3, 1fr); }
+.seg button { border: 2px solid var(--line); background: var(--bg); border-radius: 16px; padding: 10px 4px; font-size: .85rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.seg button .face { width: 28px; height: 28px; }
+.seg button[aria-pressed="true"] { border-color: var(--peach); background: var(--peach-soft); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.checks button { border: 2px solid var(--line); background: var(--bg); border-radius: 999px; padding: 7px 12px; font-size: .88rem; font-weight: 600; }
+.checks button[aria-pressed="true"] { border-color: var(--rose); background: var(--rose-soft); color: var(--rose); font-weight: 800; }
+.checks button.ok[aria-pressed="true"] { border-color: var(--mint); background: var(--mint-soft); color: var(--mint); }
+.suggest { display: flex; flex-wrap: wrap; gap: 6px; }
+.suggest button { border: 0; background: var(--bg); border-radius: 999px; padding: 5px 10px; font-size: .86rem; font-weight: 600; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 2px solid var(--line); background: var(--surface); border-radius: 16px; padding: 12px 16px; font-weight: 800; }
+.btn.primary { background: var(--peach); border-color: var(--peach); color: var(--on-accent); flex: 1; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; }
+.btn.danger { color: var(--rose); border-color: var(--rose-soft); }
+.btn:disabled { opacity: .5; cursor: default; }
+.err-text { color: var(--rose); font-size: .9rem; font-weight: 700; }
+.info-box { background: var(--butter-soft); border-radius: 16px; padding: 12px; font-size: .9rem; display: flex; flex-direction: column; gap: 4px; }
+.gate { min-height: 70vh; display: grid; place-items: center; }
+.gate .card { max-width: 380px; width: 100%; align-items: center; text-align: center; padding: 28px 22px; }
+.gate .bowl { width: 96px; height: 96px; }
+.gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 12px 20px; font-weight: 800; width: 100%; }
+.gbtn svg { width: 20px; height: 20px; }
+.signout { border: 0; background: none; color: var(--muted); font-weight: 700; text-decoration: underline; padding: 4px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 800; font-size: .92rem; z-index: 50; box-shadow: var(--shadow); max-width: calc(100% - 32px); text-align: center; }
+@media (max-width: 380px) { .log-btn { padding: 12px 14px; } nav.tabs .tab { font-size: .85rem; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="card">
+    <svg class="bowl" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="var(--peach-soft)"/><path d="M44 9 L37 27" stroke="var(--lilac)" stroke-width="4" stroke-linecap="round"/><ellipse cx="45" cy="8" rx="5" ry="3.5" fill="var(--lilac)" transform="rotate(-20 45 8)"/><ellipse cx="32" cy="31" rx="21" ry="5" fill="var(--butter)"/><path d="M11 31 h42 a21 19 0 0 1 -42 0z" fill="var(--peach)"/><circle cx="25" cy="40" r="2" fill="var(--ink)"/><circle cx="39" cy="40" r="2" fill="var(--ink)"/><path d="M28 45 q4 3.5 8 0" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="21" cy="44" r="2.6" fill="var(--rose)" opacity=".45"/><circle cx="43" cy="44" r="2.6" fill="var(--rose)" opacity=".45"/></svg>
+    <h1>Starting Solids</h1>
+    <p class="hint" id="gateMsg">Checking who’s here…</p>
+    <button class="gbtn" id="signInBtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.1 3.5-8.7z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.8 3.6-4.9 6.7-4.9z"/></svg>Sign in with Google</button>
+    <button class="signout" id="gateSignOut" hidden>Use a different account</button>
+  </div>
+</div>
+<div id="app" hidden>
+<div class="wrap">
+  <header class="top">
+    <div class="hello">
+      <svg class="bowl" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="31" fill="var(--peach-soft)"/>
+        <path d="M44 9 L37 27" stroke="var(--lilac)" stroke-width="4" stroke-linecap="round"/>
+        <ellipse cx="45" cy="8" rx="5" ry="3.5" fill="var(--lilac)" transform="rotate(-20 45 8)"/>
+        <ellipse cx="32" cy="31" rx="21" ry="5" fill="var(--butter)"/>
+        <path d="M11 31 h42 a21 19 0 0 1 -42 0z" fill="var(--peach)"/>
+        <circle cx="25" cy="40" r="2" fill="var(--ink)"/><circle cx="39" cy="40" r="2" fill="var(--ink)"/>
+        <path d="M28 45 q4 3.5 8 0" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <circle cx="21" cy="44" r="2.6" fill="var(--rose)" opacity=".45"/><circle cx="43" cy="44" r="2.6" fill="var(--rose)" opacity=".45"/>
+      </svg>
+      <div class="txt">
+        <h1 id="title">Alexander’s first foods</h1>
+        <p class="sub" id="subtitle">Starting solids</p>
+      </div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+      </button>
+    </div>
+    <div class="stats">
+      <div class="stat"><b class="num" id="sTried">0<small>/100</small></b><span>foods tried</span></div>
+      <div class="stat"><b class="num" id="sAll">0<small>/9</small></b><span>allergens in</span></div>
+      <div class="stat"><b class="num" id="sNut">0<small>/16</small></b><span>nutrients</span></div>
+    </div>
+    <div id="status" hidden></div>
+  </header>
+
+  <main id="viewFoods" class="stack">
+    <div class="filter" role="group" aria-label="Show foods" id="filter">
+      <button aria-pressed="true" data-f="all">All foods</button>
+      <button aria-pressed="false" data-f="tried">Tried</button>
+      <button aria-pressed="false" data-f="todo">Not yet</button>
+    </div>
+    <section class="card">
+      <div class="section-head"><h2>Nutrients so far</h2><span class="count num" id="nutCount"></span></div>
+      <div class="nutrients" id="nutrients"></div>
+      <p class="hint">Iron and zinc are the big ones now. The stores he was born with run low around 6 months, and milk alone doesn’t refill them.</p>
+    </section>
+    <section class="card" id="allergenSection">
+      <div class="section-head"><h2>Allergens</h2><span class="count num" id="alCount"></span></div>
+      <div class="allergens" id="allergens"></div>
+      <p class="hint">Introduce these one at a time, in the morning, a few days apart. Once one is in, keep offering it a couple of times a week.</p>
+    </section>
+    <div id="cats" class="stack"></div>
+  </main>
+
+  <main id="viewLog" class="stack" hidden>
+    <div id="timeline" class="stack" style="gap:18px"></div>
+  </main>
+
+  <main id="viewRoad" class="stack" hidden>
+    <section class="card">
+      <div class="section-head"><h2>Try next</h2><span class="count">picked from what he hasn’t had</span></div>
+      <div class="next" id="nextList"></div>
+    </section>
+    <section class="card">
+      <h2>His roadmap</h2>
+      <p class="hint" id="roadHint"></p>
+      <div class="road" id="road"></div>
+    </section>
+    <section class="card">
+      <h2>Wait until after his first birthday</h2>
+      <div class="avoid">
+        <div><span class="x">✕</span><span><strong>Honey</strong>, raw or baked in. It can carry botulism spores.</span></div>
+        <div><span class="x">✕</span><span><strong>Cow’s milk as a drink.</strong> It’s fine in cooking, yogurt and cheese.</span></div>
+        <div><span class="x">✕</span><span><strong>Juice, added sugar and salt.</strong> Water from a cup with meals is fine from 6 months.</span></div>
+        <div><span class="x">✕</span><span><strong>High-mercury fish</strong> like shark, swordfish, king mackerel and bigeye tuna.</span></div>
+      </div>
+      <h2 style="margin-top:6px">Choking hazards to change the shape of</h2>
+      <div class="avoid">
+        <div><span class="x">!</span><span>Whole nuts and spoonfuls of nut butter. Thin nut butter into purée or spread it thinly.</span></div>
+        <div><span class="x">!</span><span>Whole grapes, cherry tomatoes and blueberries. Quarter or squash them.</span></div>
+        <div><span class="x">!</span><span>Raw carrot, apple chunks, popcorn and hot dog rounds. Cook until soft, grate, or cut into long strips.</span></div>
+      </div>
+      <p class="src">Based on general guidance from the AAP (HealthyChildren.org), CDC and NIAID peanut guidelines. Every baby moves at their own pace, so check with your pediatrician.</p>
+    </section>
+  </main>
+</div>
+
+<nav class="tabs" aria-label="Views">
+  <div class="inner" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="foods">Foods</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="log">Diary</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="road">Roadmap</button>
+    <button class="log-btn" id="logBtn">+ Log</button>
+  </div>
+</nav>
+
+<dialog id="logDlg" aria-labelledby="logTitle">
+  <form class="sheet" id="logForm" method="dialog" novalidate>
+    <div class="sheet-head"><h2 id="logTitle">Log a food</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <div class="field">
+      <label for="fFood">What did he try?</label>
+      <input type="text" id="fFood" list="foodList" autocomplete="off" placeholder="e.g. Banana" required>
+      <datalist id="foodList"></datalist>
+      <div class="suggest" id="suggest"></div>
+    </div>
+    <div class="field">
+      <label for="fDate">When</label>
+      <input type="date" id="fDate" required>
+    </div>
+    <div class="field">
+      <span class="lbl" id="lblReact">How did he like it?</span>
+      <div class="seg" role="group" aria-labelledby="lblReact" id="fReaction"></div>
+    </div>
+    <div class="field">
+      <span class="lbl" id="lblAmt">How much</span>
+      <div class="seg three" role="group" aria-labelledby="lblAmt" id="fAmount">
+        <button type="button" data-v="taste">A taste</button>
+        <button type="button" data-v="some">A few spoons</button>
+        <button type="button" data-v="lots">Ate well</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl" id="lblTex">Texture</span>
+      <div class="seg three" role="group" aria-labelledby="lblTex" id="fTexture">
+        <button type="button" data-v="puree">Purée</button>
+        <button type="button" data-v="mashed">Mashed</button>
+        <button type="button" data-v="finger">Finger food</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl" id="lblSigns">Any reaction?</span>
+      <div class="checks" role="group" aria-labelledby="lblSigns" id="fSigns">
+        <button type="button" class="ok" data-v="none">All good</button>
+        <button type="button" data-v="rash">Rash or hives</button>
+        <button type="button" data-v="vomit">Vomiting</button>
+        <button type="button" data-v="swelling">Swelling</button>
+        <button type="button" data-v="gassy">Gassy or fussy</button>
+        <button type="button" data-v="constipated">Constipated</button>
+        <button type="button" data-v="diarrhea">Loose stool</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fNotes">Notes</label>
+      <textarea id="fNotes" placeholder="Mixed with breast milk, made a funny face, grabbed the spoon…"></textarea>
+    </div>
+    <p class="err-text" id="logErr" hidden></p>
+    <div class="row">
+      <button type="button" class="btn danger" id="delBtn" hidden>Delete</button>
+      <button type="submit" class="btn primary" id="saveBtn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="foodDlg" aria-labelledby="foodTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="foodTitle">Food</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <div id="foodBody" class="wrap" style="gap:12px"></div>
+    <button type="button" class="btn primary" id="foodLogBtn">Log this food</button>
+  </div>
+</dialog>
+
+<dialog id="setDlg" aria-labelledby="setTitle">
+  <form class="sheet" id="setForm" method="dialog">
+    <div class="sheet-head"><h2 id="setTitle">Settings</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
+    <div class="field"><label for="sName">Baby’s name</label><input type="text" id="sName"></div>
+    <div class="field"><label for="sBirth">Birthday</label><input type="date" id="sBirth"><span class="hint">Shows his age on each diary entry and where he is on the roadmap.</span></div>
+    <p class="err-text" id="setErr" hidden></p>
+    <button type="submit" class="btn primary">Save</button>
+  </form>
+</dialog>
+
+<div class="wrap" style="margin-top:28px;align-items:center"><button class="signout" id="signOutBtn">Sign out</button></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// If the Firebase scripts can't load (offline, blocked), say so instead of hanging on "Checking…"
+setTimeout(() => { const m = document.getElementById("gateMsg"); if (m && m.textContent.startsWith("Checking")) m.textContent = "Couldn’t reach the diary. Check your internet connection and reload."; }, 12000);
+</script>
+<script type="module">
+import { firebaseConfig } from "./firebase-config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeFirestore, persistentLocalCache, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ---------- Food data ----------
+const NUT = {
+  iron: "Iron", zinc: "Zinc", protein: "Protein", fats: "Healthy fats", omega3: "Omega-3",
+  calcium: "Calcium", vitA: "Vitamin A", vitC: "Vitamin C", vitD: "Vitamin D", vitE: "Vitamin E",
+  vitK: "Vitamin K", folate: "Folate", b12: "Vitamin B12", potassium: "Potassium", fiber: "Fiber", magnesium: "Magnesium"
+};
+const KEY_NUT = ["iron", "zinc"];
+const NUT_WHY = {
+  iron: "brain development; his stores run low around 6 months", zinc: "growth and immunity", protein: "growing muscles",
+  fats: "brain growth", omega3: "brain and eye development", calcium: "bones and teeth", vitA: "eyes and immunity",
+  vitC: "helps him absorb iron, so pair it with iron foods", vitD: "bones, working with calcium", vitE: "protects cells",
+  vitK: "blood clotting and bones", folate: "making new cells", b12: "nerves and blood", potassium: "muscles and heart",
+  fiber: "keeps things moving", magnesium: "bones and energy"
+};
+const ALLERGENS = ["Peanut", "Egg", "Dairy", "Wheat", "Soy", "Tree nuts", "Fish", "Shellfish", "Sesame"];
+const AL_EMOJI = { Peanut: "🥜", Egg: "🥚", Dairy: "🧀", Wheat: "🌾", Soy: "🫘", "Tree nuts": "🌰", Fish: "🐟", Shellfish: "🦐", Sesame: "🫓" };
+// name | emoji | nutrients | stage (1 = from first tastes, 2 = 7–8 mo, 3 = 9 mo+) | allergen
+const RAW = {
+  "Fruits": `Apple|🍎|vitC fiber|1
+Banana|🍌|potassium fiber|1
+Pear|🍐|fiber vitC vitK|1
+Avocado|🥑|fats folate vitK potassium vitE|1
+Peach|🍑|vitC vitA|1
+Plum|🟣|vitC vitK|1
+Mango|🥭|vitA vitC|1
+Papaya|🧡|vitC vitA folate|1
+Blueberries|🫐|vitC vitK fiber|1
+Strawberries|🍓|vitC folate|1
+Raspberries|❤️|fiber vitC|1
+Watermelon|🍉|vitC vitA|2
+Cantaloupe|🍈|vitA vitC potassium|2
+Kiwi|🥝|vitC vitK|2
+Prunes|🟤|fiber vitK potassium|1
+Apricot|🟠|vitA fiber|1
+Cherries|🍒|vitC|2
+Orange|🍊|vitC folate|2
+Pineapple|🍍|vitC|2
+Grapes|🍇|vitK|3
+Figs|🟪|fiber calcium|2
+Dates|🌴|fiber potassium|2
+Pomegranate|🔴|vitC vitK|3
+Coconut|🥥|fats|2`,
+  "Veggies": `Sweet potato|🍠|vitA fiber potassium|1
+Carrot|🥕|vitA|1
+Butternut squash|🎃|vitA vitC|1
+Peas|🫛|protein fiber vitK|1
+Green beans|🫛|vitK vitC|1
+Broccoli|🥦|vitC vitK folate|1
+Cauliflower|🤍|vitC vitK|1
+Zucchini|🥒|vitC vitA|1
+Spinach|🍃|iron folate vitK vitA|1
+Kale|🥬|vitK vitA vitC calcium|2
+Potato|🥔|potassium vitC|1
+Pumpkin|🎃|vitA|1
+Beets|🟥|folate|1
+Parsnip|🤎|fiber vitC folate|1
+Corn|🌽|fiber|2
+Asparagus|🌱|folate vitK|2
+Bell pepper|🫑|vitC vitA|2
+Tomato|🍅|vitC vitA|2
+Cucumber|🥒|vitK|3
+Mushrooms|🍄|vitD|2
+Cabbage|🥬|vitK vitC|2
+Brussels sprouts|🟢|vitK vitC|2
+Eggplant|🍆|fiber|2
+Onion|🧅|vitC|2`,
+  "Grains": `Baby oat cereal|🥣|iron zinc|1
+Oatmeal|🥣|fiber iron zinc magnesium|1
+Brown rice|🍚|magnesium fiber|1
+Quinoa|🌾|protein iron magnesium fiber|2
+Barley|🌾|fiber magnesium|2
+Millet|🌾|magnesium|2
+Pasta|🍝|iron|2|Wheat
+Toast|🍞|fiber iron|3|Wheat
+Couscous|🍲|protein|2|Wheat
+Polenta|🌽|fiber|2`,
+  "Protein": `Chicken|🍗|protein zinc iron|1
+Turkey|🦃|protein zinc iron|1
+Beef|🥩|iron zinc b12 protein|1
+Pork|🐖|protein zinc b12|1
+Lamb|🐑|iron zinc b12 protein|1
+Lentils|🟤|iron folate protein fiber|1
+Black beans|⚫|iron fiber protein folate|2
+Chickpeas|🟡|iron protein fiber folate|2
+Kidney beans|🫘|iron protein fiber|2
+Edamame|🫛|protein folate|2|Soy
+Tofu|⬜|protein calcium iron|1|Soy
+Salmon|🍣|omega3 vitD protein b12|1|Fish
+Cod|🐟|protein b12|1|Fish
+Sardines|🐟|omega3 calcium vitD b12|2|Fish
+Shrimp|🍤|protein zinc b12|2|Shellfish
+Scrambled egg|🍳|protein b12 vitD|1|Egg
+Hummus|🫓|protein iron fiber|1|Sesame
+Peanut butter|🥜|protein fats vitE|1|Peanut
+Almond butter|🌰|vitE fats calcium|1|Tree nuts
+Cashew butter|🌰|zinc fats|1|Tree nuts
+Tahini|🫓|calcium iron fats|1|Sesame`,
+  "Dairy": `Plain yogurt|🥛|calcium protein b12|1|Dairy
+Cottage cheese|🧀|protein calcium|2|Dairy
+Ricotta|🧀|calcium protein|1|Dairy
+Cheddar cheese|🧀|calcium protein|3|Dairy
+Butter|🧈|fats vitA|2|Dairy`,
+  "Seeds, herbs & spices": `Chia seeds|⚫|omega3 fiber calcium|2
+Hemp seeds|🌱|omega3 protein magnesium|2
+Flaxseed|🟤|omega3 fiber|2
+Olive oil|🫒|fats vitE|1
+Cinnamon|🟫||2
+Garlic|🧄||2
+Ginger|🫚||2
+Cumin|🟫||2
+Basil|🌿|vitK|2
+Dill|🌿||2`
+};
+const FOODS = {}; const CATALOG = {};
+for (const [cat, txt] of Object.entries(RAW)) {
+  CATALOG[cat] = [];
+  for (const line of txt.split("\n")) {
+    const [name, emoji, nut, stage, allergen] = line.split("|");
+    const k = name.toLowerCase();
+    FOODS[k] = { name, emoji, nut: nut ? nut.split(" ") : [], stage: +stage, allergen: allergen || null, cat };
+    CATALOG[cat].push(k);
+  }
+}
+const STAGES = [
+  { n: 1, title: "First tastes", from: 4, to: 6, age: "around 6 months",
+    tips: ["Smooth, runny purées or iron-fortified cereal thinned with milk", "Start with 1–2 teaspoons, once a day", "One new food every day or two so you can spot reactions", "Lead with iron: meat, lentils, fortified cereal", "Start allergens early, one at a time", "Breast milk or formula is still his main food"] },
+  { n: 2, title: "Exploring", from: 7, to: 8, age: "7–8 months",
+    tips: ["Thicker, mashed textures with small soft lumps", "Two meals a day, a few tablespoons each", "Mix foods he already knows into combos", "Offer water in an open or straw cup with meals"] },
+  { n: 3, title: "Finger foods", from: 9, to: 11, age: "9–11 months",
+    tips: ["Soft pieces he can squash between his fingers", "Pincer grasp shows up: peas, beans, small pieces", "Three meals a day plus a snack or two", "Chopped-up versions of family meals"] },
+  { n: 4, title: "Family table", from: 12, to: 99, age: "12 months +",
+    tips: ["Most family foods, cut small and soft", "Whole cow’s milk as a drink is OK now", "Honey is OK now", "Still change the shape of choking hazards"] }
+];
+
+const REACT = {
+  loved: { label: "Loved it", color: "var(--mint)", mouth: "M9 15 q3 4 6 0", eyes: "happy" },
+  liked: { label: "Liked", color: "var(--sky)", mouth: "M9 15 q3 2 6 0", eyes: "dot" },
+  unsure: { label: "Unsure", color: "var(--butter)", mouth: "M9 15.5 h6", eyes: "dot" },
+  refused: { label: "Nope", color: "var(--rose)", mouth: "M9 16.5 q3 -3 6 0", eyes: "dot" }
+};
+const AMOUNT = { taste: "a taste", some: "a few spoons", lots: "ate well" };
+const TEXTURE = { puree: "purée", mashed: "mashed", finger: "finger food" };
+const SIGNS = { rash: "Rash or hives", vomit: "Vomiting", swelling: "Swelling", gassy: "Gassy or fussy", constipated: "Constipated", diarrhea: "Loose stool" };
+
+function face(r) {
+  const f = REACT[r]; if (!f) return "";
+  const eyes = f.eyes === "happy"
+    ? `<path d="M7.5 10 q1.5 -1.5 3 0 M13.5 10 q1.5 -1.5 3 0" stroke="#3a2f3d" stroke-width="1.6" fill="none" stroke-linecap="round"/>`
+    : `<circle cx="9" cy="10" r="1.2" fill="#3a2f3d"/><circle cx="15" cy="10" r="1.2" fill="#3a2f3d"/>`;
+  return `<svg class="face" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${f.color}"/>${eyes}<path d="${f.mouth}" stroke="#3a2f3d" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`;
+}
+document.getElementById("fReaction").innerHTML = Object.entries(REACT).map(([k, v]) => `<button type="button" data-v="${k}">${face(k)}${v.label}</button>`).join("");
+
+// ---------- State ----------
+const state = { entries: [], settings: { name: "Alexander", birthDate: "" }, filter: "all", db: null, userId: null, userName: "", canWrite: true, editing: null, foodOpen: null, };
+const $ = id => document.getElementById(id);
+const keyOf = s => s.trim().toLowerCase().replace(/\s+/g, " ");
+const info = k => FOODS[k] || { name: k.replace(/\b\w/g, c => c.toUpperCase()), emoji: "🍽️", nut: [], stage: 1, allergen: ALLERGENS.find(a => a.toLowerCase() === k) || null };
+const nameOf = k => info(k).name;
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const parseDay = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const daysAgo = s => Math.round((parseDay(today()) - parseDay(s)) / 864e5);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const babyName = () => state.settings.name || "Alexander";
+
+function monthsOn(day) {
+  if (!state.settings.birthDate) return null;
+  const b = parseDay(state.settings.birthDate), d = parseDay(day);
+  let m = (d.getFullYear() - b.getFullYear()) * 12 + d.getMonth() - b.getMonth();
+  if (d.getDate() < b.getDate()) m--;
+  if (m < 0) return null;
+  const anchor = new Date(b.getFullYear(), b.getMonth() + m, b.getDate());
+  return { m, w: Math.floor((d - anchor) / 864e5 / 7) };
+}
+function ageOn(day) { const a = monthsOn(day); if (!a) return ""; return a.w > 0 ? `${a.m} mo ${a.w} wk` : `${a.m} mo`; }
+function currentStage() {
+  const a = monthsOn(today()); if (!a) return 1;
+  return STAGES.find(s => a.m <= s.to)?.n || 4;
+}
+
+function byFood() {
+  const map = new Map();
+  for (const e of state.entries) { if (!map.has(e.foodKey)) map.set(e.foodKey, []); map.get(e.foodKey).push(e); }
+  for (const list of map.values()) list.sort((a, b) => (a.date + (a.createdAt||"")).localeCompare(b.date + (b.createdAt||"")));
+  return map;
+}
+const hasSigns = e => (e.signs || []).some(s => s !== "none");
+
+// ---------- Render ----------
+function render() {
+  const foods = byFood();
+  $("title").textContent = `${babyName()}’s first foods`;
+  const nowAge = ageOn(today());
+  $("subtitle").textContent = nowAge ? `${nowAge} old · ${STAGES[currentStage() - 1].title.toLowerCase()}` : "Starting solids";
+
+  $("sTried").innerHTML = `${foods.size}<small>/100</small>`;
+  const alIn = new Map();
+  for (const [k, list] of foods) { const a = info(k).allergen; if (a) { if (!alIn.has(a)) alIn.set(a, []); alIn.get(a).push(...list); } }
+  $("sAll").innerHTML = `${alIn.size}<small>/9</small>`;
+  const nutSrc = {};
+  for (const k of foods.keys()) for (const n of info(k).nut) (nutSrc[n] ||= []).push(nameOf(k));
+  const nutN = Object.keys(NUT).filter(n => nutSrc[n]).length;
+  $("sNut").innerHTML = `${nutN}<small>/${Object.keys(NUT).length}</small>`;
+  $("nutCount").textContent = `${nutN} of ${Object.keys(NUT).length}`;
+  $("nutrients").innerHTML = Object.entries(NUT).map(([k, label]) => {
+    const on = !!nutSrc[k];
+    return `<span class="nut ${on ? "on" : ""} ${KEY_NUT.includes(k) ? "key" : ""}" title="${esc(on ? "From " + nutSrc[k].join(", ") : "Not yet")}">${on ? "✓ " : ""}${esc(label)}</span>`;
+  }).join("");
+  $("alCount").textContent = `${alIn.size} of 9 introduced`;
+
+  const show = tried => state.filter === "all" || (state.filter === "tried" ? tried : !tried);
+  $("allergens").innerHTML = ALLERGENS.filter(a => show(alIn.has(a))).map(a => {
+    const list = (alIn.get(a) || []).sort((x, y) => x.date.localeCompare(y.date));
+    const flag = list.some(hasSigns);
+    const last = list[list.length - 1];
+    let st = "Not yet";
+    if (list.length) { const d = daysAgo(last.date); st = `${list.length}× · last ${d === 0 ? "today" : d === 1 ? "yesterday" : d + " days ago"}`; }
+    return `<button class="al-card ${list.length ? "done" : ""} ${flag ? "flag" : ""}" data-allergen="${esc(a)}"><span class="name">${AL_EMOJI[a]} ${esc(a)}</span><span class="st num">${flag ? "Reaction noted · " : ""}${st}</span></button>`;
+  }).join("") || `<p class="hint">Nothing here for this filter.</p>`;
+
+  const custom = [...foods.keys()].filter(k => !FOODS[k]);
+  const cats = { ...CATALOG }; if (custom.length) cats["Other foods"] = custom;
+  $("cats").innerHTML = Object.entries(cats).map(([cat, list]) => {
+    const tried = list.filter(k => foods.has(k)).length;
+    const chips = list.filter(k => show(foods.has(k))).map(k => chipHtml(k, foods)).join("");
+    if (!chips) return "";
+    return `<section class="card"><div class="section-head"><h2>${esc(cat)}</h2><span class="count num">${tried} / ${list.length}</span></div><div class="chips">${chips}</div></section>`;
+  }).join("");
+
+  renderTimeline(foods);
+  renderRoad(foods, alIn);
+  if ($("foodDlg").open && state.foodOpen) openFood(state.foodOpen, true);
+}
+
+function chipHtml(k, foods) {
+  const f = info(k), l = foods.get(k);
+  if (!l) return `<button class="chip" data-food="${esc(k)}"><span class="em">${f.emoji}</span>${esc(f.name)}${f.allergen ? ` <span class="al">ALLERGEN</span>` : ""}</button>`;
+  const last = l[l.length - 1];
+  return `<button class="chip tried ${l.some(hasSigns) ? "flag" : ""}" data-food="${esc(k)}"><span class="em">${f.emoji}</span>${esc(f.name)}${face(last.reaction)}${l.length > 1 ? `<span class="n num">×${l.length}</span>` : ""}</button>`;
+}
+
+function renderTimeline(foods) {
+  const tl = $("timeline");
+  if (!state.entries.length) {
+    tl.innerHTML = `<div class="empty"><strong>No foods logged yet</strong><span>Tap “+ Log” after each new taste. It shows up here for both of you.</span></div>`;
+    return;
+  }
+  const firstId = new Map(); for (const [k, l] of foods) firstId.set(k, l[0].id);
+  const sorted = [...state.entries].sort((a, b) => (b.date + (b.createdAt||"")).localeCompare(a.date + (a.createdAt||"")));
+  const groups = [];
+  for (const e of sorted) { const g = groups[groups.length - 1]; if (g && g.date === e.date) g.items.push(e); else groups.push({ date: e.date, items: [e] }); }
+  tl.innerHTML = groups.map(g => {
+    const diff = daysAgo(g.date);
+    const label = diff === 0 ? "Today" : diff === 1 ? "Yesterday" : parseDay(g.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    const age = ageOn(g.date);
+    return `<div class="day"><div class="day-label">${esc(label)}${age ? ` <span>· ${esc(age)} old</span>` : ""}</div>${g.items.map(e => entryHtml(e, firstId.get(e.foodKey) === e.id)).join("")}</div>`;
+  }).join("");
+}
+
+function entryHtml(e, isFirst) {
+  const f = info(e.foodKey);
+  const bits = [AMOUNT[e.amount], TEXTURE[e.texture]].filter(Boolean);
+  const who = e.byName ? `logged by ${e.byName}` : "";
+  const signs = (e.signs || []).filter(s => s !== "none");
+  return `<button class="entry" data-entry="${esc(e.id)}"><span class="big">${f.emoji}</span><span class="body">
+    <span class="line1"><span class="food">${esc(f.name)}</span><span class="tags">${isFirst ? `<span class="tag first">FIRST TIME</span>` : ""}${f.allergen ? `<span class="tag al">${esc(f.allergen.toUpperCase())}</span>` : ""}</span></span>
+    <span class="meta">${e.reaction ? face(e.reaction) + esc(REACT[e.reaction].label) : "No reaction noted"}${bits.length ? " · " + esc(bits.join(" · ")) : ""}${who ? " · " + esc(who) : ""}</span>
+    ${signs.length ? `<span class="tags">${signs.map(s => `<span class="tag sign">${esc(SIGNS[s] || s)}</span>`).join("")}</span>` : ""}
+    ${e.notes ? `<span class="notes">${esc(e.notes)}</span>` : ""}
+  </span></button>`;
+}
+
+// Picks untried foods suited to his stage: iron first, then the next allergen, then nutrients and food groups he hasn't had
+function suggestions(foods, alIn) {
+  const stage = currentStage();
+  const haveNut = new Set(); for (const k of foods.keys()) info(k).nut.forEach(n => haveNut.add(n));
+  const catCount = {}; for (const k of foods.keys()) { const c = info(k).cat; if (c) catCount[c] = (catCount[c] || 0) + 1; }
+  const recentAllergen = state.entries.some(e => info(e.foodKey).allergen && daysAgo(e.date) < 3 && foods.get(e.foodKey)[0].id === e.id);
+  let allergenPicked = false;
+  const scored = Object.entries(FOODS).filter(([k, f]) => !foods.has(k) && f.stage <= stage && f.nut.length).map(([k, f]) => {
+    let s = 0, why = [];
+    if (f.nut.includes("iron")) { s += 4; why.push("Iron-rich"); }
+    if (f.nut.includes("zinc") && !haveNut.has("zinc")) { s += 2; why.push("zinc"); }
+    if (f.allergen && !alIn.has(f.allergen)) { s += recentAllergen ? -10 : 3; why.push(`starts ${f.allergen.toLowerCase()}`); }
+    const newNuts = f.nut.filter(n => !haveNut.has(n) && n !== "iron" && n !== "zinc");
+    if (newNuts.length) { s += newNuts.length; if (why.length < 2) why.push(`new: ${NUT[newNuts[0]].toLowerCase()}`); }
+    s += Math.max(0, 2 - (catCount[f.cat] || 0));
+    if (!why.length) why.push(`more ${f.cat.toLowerCase()}`);
+    return { k, f, s, why: why.join(" · ") };
+  }).sort((a, b) => b.s - a.s);
+  const out = [];
+  for (const c of scored) {
+    if (c.f.allergen && !alIn.has(c.f.allergen)) { if (allergenPicked) continue; allergenPicked = true; }
+    out.push(c); if (out.length === 6) break;
+  }
+  return { out, recentAllergen };
+}
+
+function renderRoad(foods, alIn) {
+  const { out, recentAllergen } = suggestions(foods, alIn);
+  $("nextList").innerHTML = out.map(c => `<button data-food="${esc(c.k)}"><span class="em">${c.f.emoji}</span><span class="nm">${esc(c.f.name)}</span><span class="why">${esc(c.why.charAt(0).toUpperCase() + c.why.slice(1))}</span></button>`).join("")
+    + (recentAllergen ? `<p class="hint" style="grid-column:1/-1">He had a new allergen in the last few days, so the next one waits a little.</p>` : "");
+  const cur = currentStage();
+  $("roadHint").textContent = state.settings.birthDate
+    ? `He’s ${ageOn(today())} old, so he’s on stage ${cur}. Most babies start solids around 6 months; you and your pediatrician set the pace.`
+    : `Add his birthday in settings (the gear up top) and the roadmap will follow his age.`;
+  $("road").innerHTML = STAGES.map(s => {
+    const list = Object.keys(FOODS).filter(k => FOODS[k].stage === s.n && FOODS[k].nut.length);
+    const tried = list.filter(k => foods.has(k)).length;
+    const cls = s.n < cur ? "done" : s.n === cur ? "now" : "";
+    const sample = s.n === 4 ? "" : `<div class="hint num">${tried} of ${list.length} stage ${s.n} foods tried</div><div class="chips">${list.map(k => chipHtml(k, foods)).join("")}</div>`;
+    return `<div class="stage ${cls}"><div class="rail"><div class="pin">${s.n === 4 ? "🎂" : s.n}</div></div><div class="content">
+      <span class="age">${esc(s.age)}${s.n === cur ? " · he’s here" : ""}</span><h2>${esc(s.title)}</h2>
+      <ul>${s.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>${sample}</div></div>`;
+  }).join("");
+}
+
+// ---------- Sheets ----------
+function setSeg(groupId, v) { for (const b of $(groupId).querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.v === v)); }
+function getSeg(groupId) { return $(groupId).querySelector('[aria-pressed="true"]')?.dataset.v || ""; }
+for (const g of ["fReaction", "fAmount", "fTexture"]) {
+  $(g).addEventListener("click", ev => { const b = ev.target.closest("button"); if (!b) return; setSeg(g, b.getAttribute("aria-pressed") === "true" ? "" : b.dataset.v); });
+}
+$("fSigns").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  const on = b.getAttribute("aria-pressed") !== "true";
+  b.setAttribute("aria-pressed", String(on));
+  if (on && b.dataset.v === "none") $("fSigns").querySelectorAll('button:not([data-v="none"])').forEach(x => x.setAttribute("aria-pressed", "false"));
+  if (on && b.dataset.v !== "none") $("fSigns").querySelector('[data-v="none"]').setAttribute("aria-pressed", "false");
+});
+
+function openLog(entry, foodKey) {
+  state.editing = entry || null;
+  $("logTitle").textContent = entry ? "Edit entry" : "Log a food";
+  $("fFood").value = entry ? nameOf(entry.foodKey) : foodKey ? nameOf(foodKey) : "";
+  $("fDate").value = entry ? entry.date : today();
+  setSeg("fReaction", entry?.reaction || ""); setSeg("fAmount", entry?.amount || ""); setSeg("fTexture", entry?.texture || "");
+  $("fSigns").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String((entry?.signs || []).includes(b.dataset.v))));
+  $("fNotes").value = entry?.notes || "";
+  $("delBtn").hidden = !entry; $("logErr").hidden = true;
+  $("saveBtn").disabled = !state.canWrite || !state.db;
+  if (!state.db) showErr("logErr", "Saving isn’t available here. Sign in first.");
+  else if (!state.canWrite) showErr("logErr", "You can view this diary but not add to it. Make sure you signed in with the right Google account.");
+  renderSuggest();
+  if ($("foodDlg").open) $("foodDlg").close();
+  $("logDlg").showModal();
+}
+function renderSuggest() {
+  const q = keyOf($("fFood").value);
+  const tried = new Set(state.entries.map(e => e.foodKey));
+  let list;
+  if (q) list = [...new Set([...tried, ...Object.keys(FOODS)])].filter(k => k.includes(q) && k !== q);
+  else { const foods = byFood(); list = [...foods.keys()].sort((a, b) => foods.get(b).at(-1).date.localeCompare(foods.get(a).at(-1).date)); }
+  $("suggest").innerHTML = list.slice(0, 6).map(k => `<button type="button" data-s="${esc(nameOf(k))}">${info(k).emoji} ${esc(nameOf(k))}</button>`).join("");
+}
+$("fFood").addEventListener("input", renderSuggest);
+$("suggest").addEventListener("click", ev => { const b = ev.target.closest("button"); if (b) { $("fFood").value = b.dataset.s; renderSuggest(); } });
+$("foodList").innerHTML = Object.values(FOODS).map(f => `<option value="${esc(f.name)}"></option>`).join("");
+
+function showErr(id, msg) { $(id).textContent = msg; $(id).hidden = false; }
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2400); }
+function dbMessage(e) {
+  if (e?.code === "permission-denied" || e?.code === "invalid_argument") { state.canWrite = false; return "You don’t have permission to save to this diary. Make sure you signed in with the right Google account."; }
+  if (e?.code === "quota_exceeded") return "The diary is full. Delete a few old entries, then try again.";
+  return "Couldn’t save. Check your connection and try again.";
+}
+
+$("logForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const food = $("fFood").value.trim();
+  if (!food) return showErr("logErr", "Type the food he tried.");
+  if (!$("fDate").value) return showErr("logErr", "Pick the day he tried it.");
+  if (!state.db) return;
+  const body = {
+    foodKey: keyOf(food), date: $("fDate").value,
+    reaction: getSeg("fReaction"), amount: getSeg("fAmount"), texture: getSeg("fTexture"),
+    signs: [...$("fSigns").querySelectorAll('[aria-pressed="true"]')].map(b => b.dataset.v),
+    notes: $("fNotes").value.trim()
+  };
+  $("saveBtn").disabled = true;
+  try {
+    if (state.editing) {
+      await state.db.collection("tastings").doc(state.editing.id).update({ ...body, updatedAt: new Date().toISOString() });
+      toast("Entry updated");
+    } else {
+      const isNew = !state.entries.some(e => e.foodKey === body.foodKey);
+      await state.db.collection("tastings").add({ ...body, createdAt: new Date().toISOString(), by: state.userId || null, byName: state.userName || "" });
+      toast(isNew ? `${info(body.foodKey).emoji} First taste of ${nameOf(body.foodKey).toLowerCase()}!` : "Saved");
+    }
+    $("logDlg").close();
+  } catch (e) { showErr("logErr", dbMessage(e)); }
+  finally { $("saveBtn").disabled = !state.canWrite; }
+});
+
+let delArmed = false;
+$("delBtn").addEventListener("click", async () => {
+  if (!delArmed) { delArmed = true; $("delBtn").textContent = "Tap again to delete"; setTimeout(() => { delArmed = false; $("delBtn").textContent = "Delete"; }, 3000); return; }
+  delArmed = false; $("delBtn").textContent = "Delete";
+  try { await state.db.collection("tastings").doc(state.editing.id).delete(); $("logDlg").close(); toast("Entry deleted"); }
+  catch (e) { showErr("logErr", dbMessage(e)); }
+});
+
+function openFood(k, refresh) {
+  state.foodOpen = k;
+  const list = byFood().get(k) || [];
+  const f = info(k);
+  $("foodTitle").innerHTML = `<span>${f.emoji}</span>${esc(f.name)}`;
+  let html = "";
+  if (f.nut.length) html += `<div class="nutrients">${f.nut.map(n => `<span class="nut on ${KEY_NUT.includes(n) ? "key" : ""}">${esc(NUT[n])}</span>`).join("")}</div>
+    <ul class="hint" style="margin:0;padding-left:18px">${f.nut.slice(0, 3).map(n => `<li><strong>${esc(NUT[n])}</strong>: ${esc(NUT_WHY[n])}</li>`).join("")}</ul>`;
+  if (FOODS[k]) html += `<p class="hint">Good from: <strong>${esc(STAGES[f.stage - 1].age)}</strong>${f.stage > 1 ? "" : ", as a smooth purée"}</p>`;
+  if (f.allergen) html += `<div class="info-box"><strong>Allergen: ${esc(f.allergen)}</strong><span>Offer a small amount in the morning on its own. Watch for hives, vomiting or swelling over the next couple of hours. Once it’s in, keep it in his week.</span></div>`;
+  if (!list.length) html += `<p class="hint">He hasn’t tried this yet.</p>`;
+  else {
+    const counts = {}; list.forEach(e => { if (e.reaction) counts[e.reaction] = (counts[e.reaction] || 0) + 1; });
+    const sum = Object.entries(counts).map(([r, n]) => `${REACT[r].label} ${n}×`).join(" · ");
+    html += `<p class="hint num">Tried ${list.length} ${list.length === 1 ? "time" : "times"}, first on ${parseDay(list[0].date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}${sum ? ". " + esc(sum) : ""}</p>`;
+    html += [...list].reverse().map(e => entryHtml(e, e === list[0])).join("");
+  }
+  $("foodBody").innerHTML = html;
+  if (!refresh) $("foodDlg").showModal();
+}
+function openAllergen(a) {
+  const foods = byFood();
+  const keys = [...foods.keys()].filter(k => info(k).allergen === a);
+  if (keys.length) return openFood(keys.sort((x, y) => foods.get(y).length - foods.get(x).length)[0]);
+  openFood(Object.keys(FOODS).find(k => FOODS[k].allergen === a && FOODS[k].stage === 1) || Object.keys(FOODS).find(k => FOODS[k].allergen === a));
+}
+$("foodLogBtn").addEventListener("click", () => openLog(null, state.foodOpen));
+
+document.addEventListener("click", ev => {
+  const c = ev.target.closest("[data-close]"); if (c) { c.closest("dialog").close(); return; }
+  const en = ev.target.closest("[data-entry]");
+  if (en) { const e = state.entries.find(x => x.id === en.dataset.entry); if (e) openLog(e); return; }
+  const f = ev.target.closest("[data-food]"); if (f) return openFood(f.dataset.food);
+  const a = ev.target.closest("[data-allergen]"); if (a) return openAllergen(a.dataset.allergen);
+});
+for (const d of document.querySelectorAll("dialog")) d.addEventListener("click", ev => { if (ev.target === d) d.close(); });
+
+$("logBtn").addEventListener("click", () => openLog());
+const VIEWS = { foods: "viewFoods", log: "viewLog", road: "viewRoad" };
+function setTab(t) {
+  if (!VIEWS[t]) t = "foods";
+  document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  for (const [k, id] of Object.entries(VIEWS)) $(id).hidden = k !== t;
+  try { localStorage.setItem("solids.tab", t); } catch {}
+}
+document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => { setTab(b.dataset.tab); window.scrollTo(0, 0); }));
+try { const t = localStorage.getItem("solids.tab"); if (t) setTab(t); } catch {}
+$("filter").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  state.filter = b.dataset.f; $("filter").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); render();
+});
+
+$("settingsBtn").addEventListener("click", () => {
+  $("sName").value = state.settings.name || ""; $("sBirth").value = state.settings.birthDate || ""; $("setErr").hidden = true;
+  $("setDlg").showModal();
+});
+$("setForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  if (!state.db) return showErr("setErr", "Saving isn’t available here. Sign in first.");
+  try {
+    await state.db.doc("settings/baby").set({ name: $("sName").value.trim() || "Alexander", birthDate: $("sBirth").value });
+    $("setDlg").close(); toast("Saved");
+  } catch (e) { showErr("setErr", dbMessage(e)); }
+});
+
+function status(html, err) { const s = $("status"); s.className = "notice" + (err ? " err" : ""); s.innerHTML = html; s.hidden = !html; }
+
+
+// ---------- Firebase ----------
+// Small wrapper so the app code reads the same as before: db.collection(x).doc(id).update(...), db.doc(path).set(...)
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const fs = initializeFirestore(fbApp, { localCache: persistentLocalCache() });
+const wrapDoc = ref => ({ set: d => setDoc(ref, d), update: d => updateDoc(ref, d), delete: () => deleteDoc(ref) });
+const db = {
+  collection: path => ({ add: d => addDoc(collection(fs, path), d), doc: id => wrapDoc(doc(fs, path, id)) }),
+  doc: path => wrapDoc(doc(fs, path))
+};
+
+let unsubs = [];
+function gate(msg, { signIn = false, signOutBtn = false } = {}) {
+  $("app").hidden = true; $("gate").hidden = false;
+  $("gateMsg").textContent = msg; $("signInBtn").hidden = !signIn; $("gateSignOut").hidden = !signOutBtn;
+}
+$("signInBtn").addEventListener("click", async () => {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  try { await signInWithPopup(auth, provider); }
+  catch (e) {
+    if (e?.code === "auth/popup-blocked" || e?.code === "auth/operation-not-supported-in-this-environment") return signInWithRedirect(auth, provider);
+    if (e?.code !== "auth/popup-closed-by-user" && e?.code !== "auth/cancelled-popup-request") gate("Sign-in didn’t work. Try again.", { signIn: true });
+  }
+});
+const doSignOut = () => { unsubs.forEach(u => u()); unsubs = []; signOut(auth); };
+$("signOutBtn").addEventListener("click", doSignOut);
+$("gateSignOut").addEventListener("click", doSignOut);
+
+// The first time anyone opens the site, add his first food so the diary doesn't start empty
+async function firstRun() {
+  try {
+    const s = await getDoc(doc(fs, "settings", "baby"));
+    if (s.exists()) return;
+    const b = writeBatch(fs);
+    b.set(doc(fs, "settings", "baby"), { name: "Alexander", birthDate: "" });
+    b.set(doc(fs, "tastings", "first-apple"), { foodKey: "apple", date: "2026-10-24", reaction: "", amount: "taste", texture: "puree", signs: [], notes: "His very first solid food!", createdAt: "2026-10-24T12:00:00.000Z", by: null, byName: "" });
+    await b.commit();
+  } catch {}
+}
+
+render();
+onAuthStateChanged(auth, async u => {
+  unsubs.forEach(x => x()); unsubs = [];
+  if (!u) return gate(`Sign in to see ${babyName()}’s food diary.`, { signIn: true });
+  state.db = db; state.userId = u.uid; state.userName = (u.displayName || "").split(" ")[0]; state.canWrite = true;
+  gate("Opening the diary…");
+  let opened = false;
+  const open = () => { if (!opened) { opened = true; $("gate").hidden = true; $("app").hidden = false; } };
+  const denied = e => {
+    if (e?.code === "permission-denied") gate(`${u.email} isn’t on the list for this diary. Sign in with the Google account you were invited with.`, { signOutBtn: true });
+    else status(`<strong>Lost connection to the diary.</strong> Reload the page to reconnect.`, true);
+  };
+  await firstRun();
+  unsubs.push(onSnapshot(collection(fs, "tastings"), snap => {
+    state.entries = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.foodKey);
+    open(); render();
+  }, denied));
+  unsubs.push(onSnapshot(doc(fs, "settings", "baby"), snap => {
+    if (snap.exists()) { state.settings = { name: "Alexander", birthDate: "", ...snap.data() }; render(); }
+  }, () => {}));
+});
+</script>
+</body>
+</html>
